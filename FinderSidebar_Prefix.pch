@@ -1,0 +1,14 @@
+//
+//  FinderSidebar_Prefix.pch
+//  FinderSidebar
+//
+//  Created by mkhl on 24.06.09.
+//  Copyright Martin Kuehl 2009. All rights reserved.
+//
+
+
+#ifdef __OBJC__
+  #import <Cocoa/Cocoa.h>
+  #import <Vermilion/Vermilion.h>
+  #import <GTM/GTMDefines.h>
+#endif
