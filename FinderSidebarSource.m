@@ -46,6 +46,9 @@ static NSString *const kSidebarItemAliasKey = @"Alias";
                                              source:self
                                          attributes:nil]];
   }
+  [self performSelector:@selector(recacheContents)
+             withObject:nil
+             afterDelay:60.0];
 }
 
 @end
