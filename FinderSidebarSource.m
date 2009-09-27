@@ -16,6 +16,7 @@ static NSString *const kSidebarItemAliasKey = @"Alias";
 - (void)recacheContents;
 - (void)recacheContentsAfterDelay:(NSTimeInterval)delay;
 - (void)indexItemAtPath:(NSString *)path;
+- (void)indexResultAtPath:(NSString *)path;
 @end
 
 @implementation FinderSidebarSource
@@ -23,24 +24,25 @@ static NSString *const kSidebarItemAliasKey = @"Alias";
 - (id)initWithConfiguration:(NSDictionary *)configuration
 {
   self = [super initWithConfiguration:configuration];
-  if (self == nil)
-    return nil;
-  if ([self loadResultsCache])
-    [self recacheContentsAfterDelay:10.0];
-  else
-    [self recacheContents];
+  if (self) {
+    if ([self loadResultsCache]) {
+      [self recacheContentsAfterDelay:10.0];
+    } else {
+      [self recacheContents];
+    }
+  }
   return self;
 }
 
 - (void)recacheContents
 {
   [self clearResultIndex];
-  NSDictionary *settings = [[NSUserDefaults standardUserDefaults]
-                            persistentDomainForName:kSidebarBundleIdentifier];
-  for (NSDictionary *item in [settings valueForKeyPath:kSidebarItemsKey]) {
+  NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+  NSDictionary *dict = [defaults persistentDomainForName:kSidebarBundleIdentifier];
+  for (NSDictionary *item in [dict valueForKeyPath:kSidebarItemsKey]) {
     NSData *alias = [item valueForKey:kSidebarItemAliasKey];
-    NSString *path = [[NSFileManager defaultManager]
-                      gtm_pathFromAliasData:alias];
+    NSFileManager *manager = [NSFileManager defaultManager];
+    NSString *path = [manager gtm_pathFromAliasData:alias];
     [self indexItemAtPath:path];
   }
   [self recacheContentsAfterDelay:60.0];
@@ -48,9 +50,19 @@ static NSString *const kSidebarItemAliasKey = @"Alias";
 
 - (void)recacheContentsAfterDelay:(NSTimeInterval)delay
 {
-  [self performSelector:@selector(recacheContents)
-             withObject:nil
-             afterDelay:delay];
+  SEL action = @selector(recacheContents);
+  [self performSelector:action withObject:nil afterDelay:delay];
+}
+
+- (void)indexItemAtPath:(NSString *)path
+{
+  [self indexResultAtPath:path];
+  NSFileManager *manager = [NSFileManager defaultManager];
+  for (NSString *subpath in [manager directoryContentsAtPath:path]) {
+    if (![subpath hasPrefix:@"."]) {
+      [self indexResultAtPath:[path stringByAppendingPathComponent:subpath]];
+    }
+  }
 }
 
 - (void)indexResultAtPath:(NSString *)path
@@ -58,15 +70,6 @@ static NSString *const kSidebarItemAliasKey = @"Alias";
   [self indexResult:[HGSResult resultWithFilePath:path
                                            source:self
                                        attributes:nil]];
-}
-
-- (void)indexItemAtPath:(NSString *)path
-{
-  [self indexResultAtPath:path];
-  NSFileManager *manager = [NSFileManager defaultManager];
-  for (NSString *subpath in [manager directoryContentsAtPath:path])
-    if (![subpath hasPrefix:@"."])
-      [self indexResultAtPath:[path stringByAppendingPathComponent:subpath]];
 }
 
 @end
